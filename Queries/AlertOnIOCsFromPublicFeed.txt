@@ -1,0 +1,34 @@
+let CurrentIOCs = (externaldata(Value:string, Type:string)
+[@"https://raw.githubusercontent.com/jimmyk41/PublicIOCs/main/CuckooBees.csv"]
+with(format="csv"));
+let timeframe = ago(30d);
+let Filenames = (CurrentIOCs | where Type == "Filename" | project Value);
+let Hashes = (CurrentIOCs | where Type == "FileHash" | project Value);
+let Emails = (CurrentIOCs | where Type == "Email" | project Value);
+let IPs = (CurrentIOCs | where Type == "IP" | project Value);
+let URLs = (CurrentIOCs | where Type == "URL" | project Value);
+union isfuzzy=true
+(DeviceFileEvents
+| where TimeGenerated > timeframe
+| where FileName in~ (Filenames) or InitiatingProcessFileName in~ (Filenames) or InitiatingProcessSHA256 in~ (Hashes) or SHA256 in~ (Hashes) or FileOriginUrl has_any (URLs)
+| project TimeGenerated, DeviceName, ActionType, InitiatingProcessFileName, InitiatingProcessSHA256, FileName, SHA256, FolderPath, Table = "DeviceFileEvent"),
+(DeviceProcessEvents
+| where TimeGenerated > timeframe
+| where FileName in~ (Filenames) or InitiatingProcessFileName in~ (Filenames) or InitiatingProcessSHA256 in~ (Hashes) or SHA256 in~ (Hashes)
+| project TimeGenerated, DeviceName, ActionType, InitiatingProcessFileName, InitiatingProcessSHA256, FileName, SHA256, FolderPath, Table = "DeviceProcessEvents"),
+(EmailEvents
+| where TimeGenerated > timeframe
+| where RecipientEmailAddress in~ (Emails) or SenderFromAddress in~ (Emails)
+| project TimeGenerated, Subject, SenderFromAddress, RecipientEmailAddress, Table = "EmailEvents"),
+(EmailUrlInfo
+| where TimeGenerated > timeframe
+| where Url has_any (URLs)
+| project TimeGenerated, NetworkMessageId, Table = "EmailURLInfo"),
+(DeviceNetworkEvents
+| where TimeGenerated > timeframe
+| where RemoteIP in~ (IPs) or RemoteUrl has_any (URLs)
+| project TimeGenerated, DeviceName, LocalIP, RemoteIP, RemotePort, RemoteUrl, Table = "DeviceNetworkEvents"),
+(CommonSecurityLog
+| where TimeGenerated > timeframe
+| where SourceIP in~ (IPs) or DestinationIP in~ (IPs) or RequestURL has_any (URLs)
+| project TimeGenerated, SourceIP, DestinationIP, DestinationPort, RequestURL, Table = "CommonSecurityLog")
