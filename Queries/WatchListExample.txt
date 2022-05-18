@@ -1,0 +1,3 @@
+let Admins = (_GetWatchlist('PA_Users') | project SearchKey);
+SigninLogs
+| where UserPrincipalName in~(Admins)
