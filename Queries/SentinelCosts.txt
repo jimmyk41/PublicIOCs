@@ -1,0 +1,14 @@
+//Based on the Azure Sentinel Pricing
+let aap = 2.30;
+union isfuzzy=true withsource = tt *
+| where TimeGenerated > ago(31d)
+| where _IsBillable == True
+| where tt in
+(
+"Syslog", "CommonSecurityLog", "SecurityEvent", "DeviceEvents", "DeviceProcessEvents", "DeviceNetworkEvents", "DeviceRegistryEvents", "DeviceFileEvents", "BehaviorAnalytics", "DeviceFileCertificateInfo", "DeviceImageLoadEvents", "DeviceNetworkInfo", "AADNonInteractiveUserSignInLogs", "McasShadowItReporting", "Heartbeat", "AWSSecurityHub_CL", "EmailUrlInfo", "Perf", "DeviceInfo", "UserPeerAnalytics", "Update", "WindowsFirewall", "DeviceLogonEvents", "OfficeActivity", "ContainerProcess_CL", "EmailEvents", "SecurityBaseline", "SigninLogs", "AADServicePrincipalSignInLogs", "ThreatIntelligenceIndicator", "ContainerNodeInventory_CL", "ProtectionStatus", "AWSCloudTrail", "IdentityInfo", "AuditLogs", "SqlAtpStatus", "SqlVulnerabilityAssessmentScanStatus", "UpdateSummary", "AADManagedIdentitySignInLogs", "AADProvisioningLogs", "Usage", "SecurityBaselineSummary", "SecurityAlert", "Operation", "Anomalies", "SecurityIncident", "AADUserRiskEvents", "AADRiskyUsers", "SecurityDetection", "KubeEvents_CL", "KubePodInventory_CL"
+)
+| summarize
+TotalGBytes =round( sum(_BilledSize/(1024*1024*1024)),2),
+EstimatedCostUSD=round(aap * sum(_BilledSize/(1024*1024*1024)),2)
+by Solution=tt
+| sort by TotalGBytes desc
